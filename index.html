@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observatoire Électoral Gironde 2024 — Analyse & Découpage</title>
+    <!-- Favicon & Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for mapping -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Top Institutional Bar -->
+    <header class="sgp-header">
+        <div class="sgp-topbar">
+            <div class="container flex-between align-center">
+                <div class="sgp-brand flex align-center">
+                    <div class="sgp-logo-badge">
+                        <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="4" fill="#0A192F" />
+                            <path d="M8 32L20 8L32 32H25L20 18L15 32H8Z" fill="#C5A059" />
+                            <circle cx="20" cy="12" r="3" fill="#FFFFFF" />
+                        </svg>
+                        <span class="sgp-entity">Observatoire des Données Publiques</span>
+                    </div>
+                    <span class="divider-v"></span>
+                    <span class="sgp-subbrand">Dossier d'Analyse Territoriale & Géographie Électorale</span>
+                </div>
+                <div class="sgp-badges">
+                    <span class="badge-source">data.gouv.fr</span>
+                    <span class="badge-source">Gironde (33)</span>
+                    <span class="badge-status">Législatives 2024</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sgp-title-banner">
+            <div class="container">
+                <p class="section-kicker">Étude Spéciale — Géographie Politique & Systèmes Électoraux</p>
+                <h1 class="sgp-main-title">Élections Législatives 2024 en Gironde : L'Anatomie du Scrutin et l'Impact du Découpage Électoral</h1>
+                <p class="sgp-subtitle">
+                    Une lecture cartographique et statistique des 12 circonscriptions girondines : confrontation entre le vote populaire réel, les effets de seuil du scrutin majoritaire uninominal et les scénarios alternatifs de redécoupage territorial.
+                </p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="sgp-nav" id="mainNav">
+            <div class="container flex">
+                <button class="nav-tab active" data-tab="tab-overview">1. Résultats & Cartographie 2024</button>
+                <button class="nav-tab" data-tab="tab-gerrymandering">2. Le Biais du Découpage (Gerrymandering)</button>
+                <button class="nav-tab" data-tab="tab-simulator">3. Simulateur de Scrutins & Proportionnelle</button>
+                <button class="nav-tab" data-tab="tab-redistricting">4. Laboratoire de Redécoupage</button>
+                <button class="nav-tab" data-tab="tab-explorer">5. Explorateur de Données Brutes</button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container page-content">
+
+        <!-- ==================== TAB 1: OVERVIEW & MAP ==================== -->
+        <section id="tab-overview" class="tab-panel active">
+            <div class="content-intro">
+                <h2>Le Découpage Actuel et la Composition de l'Assemblée</h2>
+                <p>
+                    La Gironde est subdivisée en <strong>12 circonscriptions uninominales</strong>, selon un découpage issu principalement du redécoupage Pasqua de 1986, révisé à la marge par la réforme Marleix en 2010. Les élections législatives anticipées des 30 juin et 7 juillet 2024 y ont généré un contraste spectaculaire entre les pourcentages de voix exprimées au niveau départemental et la répartition finale des 12 sièges de parlementaires.
+                </p>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <span class="kpi-label">Électeurs Inscrits</span>
+                    <div class="kpi-value" id="kpiInscrits">1 154 840</div>
+                    <span class="kpi-sub">Participation T1 : 70,8 % (+20,1 pts vs 2022)</span>
+                </div>
+                <div class="kpi-card card-nfp">
+                    <span class="kpi-label">Nouveau Front Populaire (NFP)</span>
+                    <div class="kpi-value">7 <span class="kpi-unit">sièges (58,3%)</span></div>
+                    <span class="kpi-sub">Voix T1 : 33,2 % | Voix T2 : 46,1 %</span>
+                </div>
+                <div class="kpi-card card-ens">
+                    <span class="kpi-label">Ensemble / Majorité Présidentielle</span>
+                    <div class="kpi-value">4 <span class="kpi-unit">sièges (33,3%)</span></div>
+                    <span class="kpi-sub">Voix T1 : 27,4 % | Voix T2 : 31,8 %</span>
+                </div>
+                <div class="kpi-card card-rn">
+                    <span class="kpi-label">Rassemblement National & Alliés</span>
+                    <div class="kpi-value">1 <span class="kpi-unit">siège (8,3%)</span></div>
+                    <span class="kpi-sub">Voix T1 : 34,7 % | Voix T2 : 22,1 %</span>
+                </div>
+            </div>
+
+            <!-- Interactive Map & Circo Detail Panel -->
+            <div class="grid-2-cols map-section-layout">
+                <div class="card card-map">
+                    <div class="card-header flex-between align-center">
+                        <div>
+                            <h3 class="card-title">Carte Interactive des 12 Circonscriptions de Gironde</h3>
+                            <p class="card-desc">Cliquez sur une circonscription pour inspecter les résultats détaillés du 1er et 2nd tour.</p>
+                        </div>
+                        <div class="map-controls">
+                            <label for="mapLayerSelect">Visualisation :</label>
+                            <select id="mapLayerSelect" class="form-select-sm">
+                                <option value="winner">Député Élu (Bloc Politique)</option>
+                                <option value="turnout">Taux de Participation T1</option>
+                                <option value="margin">Écart de Victoire au 2nd Tour (%)</option>
+                                <option value="rn_t1">Pénétration RN au 1er Tour (%)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="girondeMap" class="map-canvas"></div>
+                    <div class="map-legend" id="mapLegend"></div>
+                </div>
+
+                <!-- Circo Detailed Card -->
+                <div class="card card-detail" id="circoDetailPanel">
+                    <div class="card-header border-bottom">
+                        <span class="tag-status" id="detailBlocBadge">NFP</span>
+                        <h3 class="card-title" id="detailCircoTitle">Sélectionnez une circonscription</h3>
+                        <p class="card-desc" id="detailCircoZone">Cliquez sur la carte ou dans le tableau ci-dessous.</p>
+                    </div>
+                    <div class="detail-body" id="detailCircoBody">
+                        <div class="placeholder-text">
+                            Sélectionnez une zone sur la carte pour afficher l'analyse démographique, le nombre d'inscrits, les scores des candidats qualifiés et les dynamiques de désistement du front républicain.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table of Elected MPs -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Récapitulatif Officiel des 12 Députés Élus en Gironde (Législatives 2024)</h3>
+                    <p class="card-desc">Données consolidées issues du Ministère de l'Intérieur et des Outre-Mer via data.gouv.fr</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="sgp-table" id="electedTable">
+                        <thead>
+                            <tr>
+                                <th>Circo</th>
+                                <th>Bassin Territorial Principal</th>
+                                <th>Député(e) Élu(e)</th>
+                                <th>Nuance / Étiquette</th>
+                                <th>Score T2 (%)</th>
+                                <th>Adversaire Finaliste</th>
+                                <th>Écart (Voix)</th>
+                                <th>Type d'Élection</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: GERRYMANDERING & BIAIS ==================== -->
+        <section id="tab-gerrymandering" class="tab-panel">
+            <div class="content-intro">
+                <h2>L'Analyse du Découpage : Géométrie des Territoires et « Voix Gaspillées »</h2>
+                <p>
+                    En science politique, l'évaluation de l'équité d'un découpage repose sur deux thermomètres fondamentaux : <strong>la distorsion démographique</strong> (l'égalité du vote d'un citoyen à l'autre) et <strong>l'indice d'efficacité électorale</strong> (<em>Efficiency Gap</em> / voix gaspillées). La Gironde offre un cas d'école : entre la circonscription la plus peuplée et la moins peuplée, le poids démographique d'une voix varie de plus de 35 %, tandis que les frontières séparent nettement l'hyper-centre bordelais des marges viticoles et forestières.
+                </p>
+            </div>
+
+            <!-- Analytical Metrics -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <span class="kpi-label">Indice de Disproportion de Gallagher</span>
+                    <div class="kpi-value text-accent">24,7 %</div>
+                    <span class="kpi-sub">Seuil critique d'injustice représentative (&gt; 10 % est élevé)</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Écart Démographique Max</span>
+                    <div class="kpi-value">36 820 hab.</div>
+                    <span class="kpi-sub">Entre la 6e circo (148 400 hab) et la 11e circo (111 580 hab)</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Voix Gaspillées (Wasted Votes) RN</span>
+                    <div class="kpi-value text-rn">214 380 voix</div>
+                    <span class="kpi-sub">87,2 % de ses suffrages exprimés au T2 n'ont produit aucun élu</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Bascules Ultra-Serrées</span>
+                    <div class="kpi-value text-gold">2 sièges</div>
+                    <span class="kpi-sub">5e circo (+1 200 voix) & 12e circo (+507 voix NFP)</span>
+                </div>
+            </div>
+
+            <div class="grid-2-cols mt-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Comparaison Voix au 1er Tour vs Sièges Obtenus</h3>
+                        <p class="card-desc">Mise en lumière de l'effet d'amplification uninominal majoritaire à deux tours.</p>
+                    </div>
+                    <div class="chart-box" id="comparisonBars">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <p class="card-footnote">
+                        *Le RN recueille 34,7 % des voix départementales au 1er tour et obtient 8,3 % des sièges (1/12). Le NFP recueille 33,2 % des voix et emporte 58,3 % des sièges (7/12). La majorité présidentielle recueille 27,4 % des voix et 33,3 % des sièges (4/12).
+                    </p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Le Mécanisme du « Packing & Cracking » en Gironde</h3>
+                        <p class="card-desc">Comment les frontières électorales canalisent les courants d'opinion :</p>
+                    </div>
+                    <div class="analysis-prose">
+                        <div class="prose-point">
+                            <strong>1. Le « Packing » Urbain (Concentration de la gauche) :</strong>
+                            <p>Les 2e et 3e circonscriptions (Bordeaux Centre, Bègles, Talence) concentrent des majorités écologistes et de gauche dépassant 60 % au second tour. Cette concentration d'électeurs NFP crée un immense réservoir de voix « excédentaires » qui n'ont aucune influence sur les circonscriptions rurales voisines.</p>
+                        </div>
+                        <div class="prose-point">
+                            <strong>2. Le « Cracking » du Périurbain et Rural (Dilution du vote RN) :</strong>
+                            <p>Le vote Rassemblement National, bien qu'arrivé en tête au 1er tour dans 6 circonscriptions sur 12 (4e, 5e, 8e, 9e, 10e, 11e, 12e), s'est retrouvé dilué au 2nd tour lors des duels face aux désistements républicains. Seule la 11e circonscription (Blayais) disposait d'une assise démographique suffisante pour franchir la barre dès le premier tour (53,3 %).</p>
+                        </div>
+                        <div class="prose-point">
+                            <strong>3. Les Circonscriptions Pivot (Médoc et Entre-Deux-Mers) :</strong>
+                            <p>Dans la 5e circonscription (Médoc) et la 12e circonscription (Créon, Sauveterre), la victoire s'est jouée à quelques centaines de bulletins. Un redécoupage incluant ne serait-ce que 3 communes limitrophes de la périphérie métropolitaine aurait inversé le vainqueur.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deep Dive Table: Demographic Weight & Efficiency Gap -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Tableau d'Équité : Poids Démographique et Indice d'Efficacité par Circonscription</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="sgp-table" id="gerrymanderingTable">
+                        <thead>
+                            <tr>
+                                <th>Circonscription</th>
+                                <th>Population Légale INSEE</th>
+                                <th>Écart à la Moyenne Dép.</th>
+                                <th>Inscrits</th>
+                                <th>Voix Gagnant</th>
+                                <th>Voix Perdant</th>
+                                <th>Voix Efficaces</th>
+                                <th>Voix Inefficaces / Perdues</th>
+                                <th>Ratio Équité Député</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: SIMULATEUR DE SCRUTINS ==================== -->
+        <section id="tab-simulator" class="tab-panel">
+            <div class="content-intro">
+                <h2>Simulateur de Systèmes Électoraux Alternatifs</h2>
+                <p>
+                    Quel aurait été le visage de la délégation parlementaire girondine sous d'autres modes de scrutin ? Utilisez ce simulateur interactif pour tester en temps réel les règles électorales débattues au niveau national : <strong>Proportionnelle intégrale</strong>, <strong>Proportionnelle avec prime majoritaire</strong>, ou <strong>Scrutin sans désistements</strong> (maintien de toutes les triangulaires).
+                </p>
+            </div>
+
+            <!-- Simulator Interactive Configuration -->
+            <div class="card card-simulator-controls">
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="scrutinModeSelect">Mode de Scrutin à Simuler :</label>
+                        <select id="scrutinModeSelect" class="form-select">
+                            <option value="reel">Scrutin Réel 2024 (Majoritaire à deux tours uninominal)</option>
+                            <option value="prop_dhondt">Proportionnelle Intégrale Départementale (Plus Forte Moyenne - D'Hondt)</option>
+                            <option value="prop_hare">Proportionnelle Intégrale (Plus Fort Reste - Quota de Hare)</option>
+                            <option value="prop_prime">Proportionnelle Départementale avec Prime Majoritaire (25% à la liste en tête)</option>
+                            <option value="triangulaires">Scrutin Majoritaire Sans Désistements (Triangulaires maintenues au T2)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="seuilSelect">Seuil d'Éligibilité :</label>
+                        <select id="seuilSelect" class="form-select">
+                            <option value="0">Aucun seuil (0 %)</option>
+                            <option value="3">Seuil à 3 %</option>
+                            <option value="5" selected>Seuil républicain classique à 5 %</option>
+                        </select>
+                    </div>
+                    <div class="control-group flex-end">
+                        <button class="btn btn-primary" id="btnRunSimulation">Recalculer les Sièges</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulation Output -->
+            <div class="grid-2-cols mt-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Répartition Comparée des 12 Sièges</h3>
+                        <p class="card-desc" id="simModeDescription">Affichage du modèle sélectionné face à la réalité observée.</p>
+                    </div>
+                    <div class="simulation-vis-container" id="simResultsChart">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Bilan Politique & Décryptage Statistique</h3>
+                        <p class="card-desc">Conséquences institutionnelles de cette simulation</p>
+                    </div>
+                    <div class="simulation-analysis" id="simAnalysisText">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Seat Assignment Table in Simulated Mode -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">Détail des Calculs Mathématiques d'Attribution</h3>
+                    <p class="card-desc">Quotients, restes et moyennes calculés sur l'ensemble des suffrages exprimés au 1er tour en Gironde (798 421 voix)</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="sgp-table" id="simDetailTable">
+                        <thead>
+                            <tr>
+                                <th>Famille Politique</th>
+                                <th>Tête de Liste Référente</th>
+                                <th>Voix 1er Tour</th>
+                                <th>% Exprimés</th>
+                                <th>Sièges Réels 2024</th>
+                                <th>Sièges Simulés</th>
+                                <th>Différentiel</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: REDECOUPAGE LAB ==================== -->
+        <section id="tab-redistricting" class="tab-panel">
+            <div class="content-intro">
+                <h2>Laboratoire de Redécoupage : Rééquilibrer la Gironde</h2>
+                <p>
+                    Depuis 2010, la métropole bordelaise a gagné plus de 130 000 habitants, créant des ruptures de représentativité criantes entre l'ouest périurbain, le Médoc et le centre urbain. Ce module examine trois propositions de <strong>redécoupage alternatif</strong> et vous permet de tester le basculement des communes charnières.
+                </p>
+            </div>
+
+            <div class="scenario-cards-grid">
+                <div class="scenario-card active" data-scenario="equilibre">
+                    <div class="scenario-badge">Scénario A</div>
+                    <h4>Rééquilibrage Démographique Strict</h4>
+                    <p>Scission de la 6e circonscription (Mérignac) trop peuplée (+18% au-dessus du quota) et rattachement de cantons au Médoc et à la Haute-Gironde.</p>
+                    <span class="scenario-impact text-success">Écart max réduit à &plusmn; 4,8 %</span>
+                </div>
+                <div class="scenario-card" data-scenario="metropole_isolee">
+                    <div class="scenario-badge">Scénario B</div>
+                    <h4>Sanctuaire Métropole vs Ruralité</h4>
+                    <p>Concentration de 7 circonscriptions 100% intra-Bordeaux Métropole et 5 circonscriptions 100% territoriales extérieures (Bassin, Médoc, Libournais, Sud, Blayais).</p>
+                    <span class="scenario-impact text-warning">Polarisation politique amplifiée</span>
+                </div>
+                <div class="scenario-card" data-scenario="bipartisan">
+                    <div class="scenario-badge">Scénario C</div>
+                    <h4>Découpage Neutralisé (Commission Indépendante)</h4>
+                    <p>Inspiré des commissions électorales non partisanes (type Californie / Royaume-Uni), respectant la continuité des bassins de vie et d'emploi.</p>
+                    <span class="scenario-impact text-info">Compétitivité accrue sur 5 circonscriptions</span>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title" id="scenarioTitle">Scénario A : Rééquilibrage Démographique Strict</h3>
+                    <p class="card-desc" id="scenarioDesc">Simulation de la nouvelle répartition des sièges si les élections de 2024 s'étaient déroulées sur ces nouvelles limites.</p>
+                </div>
+                <div class="scenario-content-body" id="scenarioDisplay">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 5: DATA EXPLORER ==================== -->
+        <section id="tab-explorer" class="tab-panel">
+            <div class="content-intro">
+                <h2>Explorateur des Données Ouvertes & Connexion API</h2>
+                <p>
+                    Cette section regroupe l'intégralité des données électorales officielles certifiées de la Gironde (scrutins du 30 juin et du 7 juillet 2024). Vous pouvez filtrer, rechercher par candidat ou commune phare, et exporter les tables au format CSV.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-header flex-between align-center flex-wrap gap-2">
+                    <div class="flex align-center gap-2">
+                        <input type="text" id="searchInput" class="form-input" placeholder="Rechercher une commune, un député, un parti...">
+                        <select id="filterBlocSelect" class="form-select-sm">
+                            <option value="ALL">Tous les blocs politiques</option>
+                            <option value="NFP">Nouveau Front Populaire (NFP)</option>
+                            <option value="ENS">Ensemble (Majorité Prés.)</option>
+                            <option value="RN">Rassemblement National (RN)</option>
+                            <option value="LR">Les Républicains / Droite</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-outline" id="btnExportCSV">Télécharger les Données (CSV)</button>
+                        <button class="btn btn-primary" id="btnRefreshAPI">Interroger l'API data.gouv.fr</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="sgp-table" id="masterDataTable">
+                        <thead>
+                            <tr>
+                                <th>Circo</th>
+                                <th>Inscrits</th>
+                                <th>Votants T1</th>
+                                <th>Exprimés T1</th>
+                                <th>Candidat en Tête T1</th>
+                                <th>Voix (%) T1</th>
+                                <th>Vainqueur Définitif T2</th>
+                                <th>Nuance</th>
+                                <th>Voix T2</th>
+                                <th>% T2</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="api-status-bar mt-3" id="apiStatusBar">
+                    <span class="status-indicator online"></span>
+                    <span class="status-msg">Données officielles consolidées data.gouv.fr — Ministère de l'Intérieur — Prêtes pour déploiement Netlify & synchronisation Supabase</span>
+                </div>
+            </div>
+
+            <!-- Technical Integration Guide Card -->
+            <div class="card mt-4 technical-card">
+                <div class="card-header">
+                    <h3 class="card-title">Architecture Technique & Connexion Supabase</h3>
+                    <p class="card-desc">Informations pour le déploiement Netlify et la gestion des données persistantes.</p>
+                </div>
+                <div class="tech-details-body">
+                    <p>Cette application est conçue pour être déployée instantanément sur <strong>Netlify</strong> sans étape de compilation complexe. Si vous souhaitez connecter votre projet à votre base de données <strong>Supabase</strong> pour enregistrer des simulations d'utilisateurs ou enrichir les découpages géographiques :</p>
+                    <ol class="tech-steps">
+                        <li>Renseignez vos clés dans un fichier d'environnement ou directement dans la configuration Supabase du script <code>app.js</code> (<code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code>).</li>
+                        <li>Une table SQL préconfigurée <code>gironde_simulations</code> peut stocker les paramètres d'utilisateurs.</li>
+                        <li>Les endpoints data.gouv.fr utilisent l'API publique ouverte sans quota restrictif.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Institutional Footer with Partner Logos & Attributions -->
+    <footer class="sgp-footer">
+        <div class="container">
+            <div class="footer-partners-bar">
+                <p class="footer-partners-title">Partenaires Institutionnels & Données Publiques</p>
+                <div class="footer-logos flex-between flex-wrap align-center">
+                    <div class="partner-box">
+                        <span class="partner-name">République Française</span>
+                        <span class="partner-sub">data.gouv.fr / Géoportail</span>
+                    </div>
+                    <div class="partner-box">
+                        <span class="partner-name">Préfecture de la Gironde</span>
+                        <span class="partner-sub">Direction de la Citoyenneté et de la Légalité</span>
+                    </div>
+                    <div class="partner-box">
+                        <span class="partner-name">Société des Grands Projets</span>
+                        <span class="partner-sub">Référentiel Graphique & Institutionnel</span>
+                    </div>
+                    <div class="partner-box">
+                        <span class="partner-name">Région Nouvelle-Aquitaine</span>
+                        <span class="partner-sub">Observatoire Régional des Territoires</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom flex-between align-center">
+                <p class="copyright">&copy; 2024 Observatoire des Données Électorales. Application open data libre et réutilisable. Conçue pour déploiement Netlify & Supabase.</p>
+                <div class="footer-links flex gap-3">
+                    <a href="https://www.data.gouv.fr/fr/datasets/elections-legislatives-des-30-juin-et-7-juillet-2024-resultats-definitifs-du-2nd-tour/" target="_blank" rel="noopener">Source Officielle data.gouv.fr</a>
+                    <a href="#mainNav">Haut de Page</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Leaflet JS for interactive mapping -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
