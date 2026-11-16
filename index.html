@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observatoire électoral de la Gironde — Législatives 2024 et découpage</title>
+    <meta name="description" content="Résultats officiels des législatives 2024 en Gironde et laboratoire de redécoupage des circonscriptions.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="topbar">
+        <div class="container flex-between align-center flex-wrap gap">
+            <div class="flex align-center flex-wrap">
+                <div class="brand">
+                    <svg width="26" height="26" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect width="40" height="40" rx="4" fill="#0A192F"/><path d="M8 32L20 8L32 32H25L20 18L15 32H8Z" fill="#C5A059"/><circle cx="20" cy="12" r="3" fill="#fff"/></svg>
+                    <span>Observatoire électoral</span>
+                </div>
+                <span class="divider-v"></span>
+                <span class="subbrand">Géographie électorale &amp; découpage des circonscriptions</span>
+            </div>
+            <div class="badges">
+                <span class="badge">Données : data.gouv.fr</span>
+                <span class="badge">Fonds de carte : IGN</span>
+                <span class="badge gold">Législatives 2024 · Gironde (33)</span>
+            </div>
+        </div>
+    </div>
+    <div class="title-banner">
+        <div class="container">
+            <p class="kicker">Étude — géographie politique et modes de scrutin</p>
+            <h1 class="main-title">Législatives 2024 en Gironde : ce que le découpage des circonscriptions change au résultat</h1>
+            <p class="subtitle">Résultats officiels des 12 circonscriptions, lecture des écarts entre voix et sièges, simulation d'autres modes de scrutin et laboratoire pour redessiner la carte électorale à partir des résultats de chaque commune.</p>
+        </div>
+    </div>
+    <nav class="nav" id="mainNav">
+        <div class="container">
+            <button class="nav-tab active" data-tab="tab-resultats">1. Résultats 2024</button>
+            <button class="nav-tab" data-tab="tab-biais">2. Voix, sièges et découpage</button>
+            <button class="nav-tab" data-tab="tab-scrutins">3. Autres modes de scrutin</button>
+            <button class="nav-tab" data-tab="tab-lab">4. Laboratoire de redécoupage</button>
+            <button class="nav-tab" data-tab="tab-donnees">5. Données et méthode</button>
+        </div>
+    </nav>
+</header>
+
+<main class="container page">
+    <div id="loader" class="loader">Chargement des données officielles…</div>
+    <div id="loadError" class="note warn" style="display:none"></div>
+
+    <!-- ============ 1. RÉSULTATS ============ -->
+    <section id="tab-resultats" class="tab-panel active">
+        <div class="intro">
+            <h2>Les 12 circonscriptions de la Gironde en 2024</h2>
+            <p>Les élections législatives anticipées des 30 juin et 7 juillet 2024 ont désigné 12 députés girondins, un par circonscription. Chaque circonscription est un territoire dessiné à l'avance : le résultat d'un département dépend donc autant des voix que de la manière dont les électeurs sont répartis entre ces territoires.</p>
+            <p>La carte ci-dessous reprend les contours officiels des circonscriptions et les résultats définitifs publiés par le ministère de l'Intérieur. Cliquez sur une circonscription pour voir le détail des deux tours.</p>
+        </div>
+        <div class="kpi-grid" id="kpiResultats"></div>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header flex-between flex-wrap gap">
+                    <div>
+                        <h3 class="card-title">Carte des circonscriptions</h3>
+                        <p class="card-desc">Contours : Etalab / data.gouv.fr · fond : Géoplateforme IGN</p>
+                    </div>
+                    <div class="map-tools">
+                        <div><label class="field" for="layerSelect">Couche</label>
+                            <select id="layerSelect">
+                                <option value="winner">Député élu (bloc)</option>
+                                <option value="t1lead">Bloc en tête au 1er tour</option>
+                                <option value="turnout">Participation au 1er tour</option>
+                                <option value="margin">Écart décisif (voix)</option>
+                                <option value="rn">Score RN au 1er tour</option>
+                                <option value="nfp">Score NFP au 1er tour</option>
+                                <option value="ens">Score Ensemble au 1er tour</option>
+                                <option value="pop">Population (écart à la moyenne)</option>
+                            </select></div>
+                        <div><label class="field" for="baseSelect">Fond</label>
+                            <select id="baseSelect">
+                                <option value="plan">Plan IGN</option>
+                                <option value="ortho">Photographies aériennes</option>
+                                <option value="osm">OpenStreetMap</option>
+                            </select></div>
+                        <div><label class="field">&nbsp;</label><label class="small"><input type="checkbox" id="toggleCommunes"> Limites communales</label></div>
+                    </div>
+                </div>
+                <div id="mapResultats" class="map"></div>
+                <div class="legend" id="legendResultats"></div>
+            </div>
+            <div class="card" id="detailPanel"><div class="muted">Sélectionnez une circonscription sur la carte.</div></div>
+        </div>
+        <div class="card mt-lg" style="margin-top:28px">
+            <div class="card-header">
+                <h3 class="card-title">Les 12 députés élus</h3>
+                <p class="card-desc">Résultats définitifs du ministère de l'Intérieur · « UG » désigne l'Union de la gauche (Nouveau Front populaire)</p>
+            </div>
+            <div class="table-wrap"><table class="t" id="tableElus"><thead><tr>
+                <th>Circo</th><th>Principales communes</th><th>Député(e)</th><th>Étiquette</th><th>Mode d'élection</th><th class="num">Voix du vainqueur</th><th class="num">Avance sur le 2e</th>
+            </tr></thead><tbody></tbody></table></div>
+        </div>
+    </section>
+
+    <!-- ============ 2. VOIX, SIÈGES ET DÉCOUPAGE ============ -->
+    <section id="tab-biais" class="tab-panel">
+        <div class="intro">
+            <h2>Voix, sièges et géométrie des circonscriptions</h2>
+            <p>Dans un scrutin uninominal, un siège se gagne circonscription par circonscription : une voix « en trop » dans un fief, ou une voix perdue chez l'adversaire, ne rapporte rien au niveau du département. Le découpage détermine où se trouvent ces voix. Deux mesures permettent d'en juger : l'<strong>égalité de poids des électeurs</strong> (écart de population entre circonscriptions) et les <strong>voix gaspillées</strong> (voix qui n'ont pas servi à élire quelqu'un).</p>
+            <p>Les indicateurs ci-dessous sont calculés directement à partir des résultats officiels chargés sur cette page.</p>
+        </div>
+        <div class="kpi-grid" id="kpiBiais"></div>
+        <div class="grid-2-eq">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Voix au 1er tour et sièges obtenus</h3>
+                    <p class="card-desc">Part des suffrages exprimés du département au 1er tour, comparée à la part des 12 sièges.</p></div>
+                <div id="barsVoixSieges"></div>
+                <p class="footnote" id="noteVoixSieges"></p>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Population par circonscription</h3>
+                    <p class="card-desc">Écart à la moyenne départementale (population municipale INSEE, via geo.api.gouv.fr)</p></div>
+                <div id="mapPop" class="map sm"></div>
+                <div class="legend" id="legendPop"></div>
+            </div>
+        </div>
+        <div class="card" style="margin-top:24px">
+            <div class="card-header"><h3 class="card-title">Lecture par circonscription</h3>
+                <p class="card-desc">Voix du vainqueur et des perdants au tour décisif (2nd tour ; 1er tour pour la 11e, élue dès le 1er tour).</p></div>
+            <div class="prose" id="proseBiais"></div>
+        </div>
+        <div class="card" style="margin-top:24px">
+            <div class="card-header"><h3 class="card-title">Tableau d'équité par circonscription</h3>
+                <p class="card-desc">Voix « efficaces » = voix nécessaires pour gagner (voix du 2e + 1). Le reste des voix du vainqueur et toutes celles des battus sont dites « gaspillées ».</p></div>
+            <div class="table-wrap"><table class="t" id="tableEquite"><thead><tr>
+                <th>Circonscription</th><th class="num">Population</th><th class="num">Écart moy.</th><th class="num">Inscrits</th><th>Vainqueur</th>
+                <th class="num">Voix vainqueur</th><th class="num">Voix efficaces</th><th class="num">Voix gaspillées vainqueur</th><th class="num">Voix gaspillées battus</th>
+            </tr></thead><tbody></tbody></table></div>
+            <div class="table-wrap" style="margin-top:22px"><table class="t" id="tableBlocs"><thead><tr>
+                <th>Bloc</th><th class="num">Voix au tour décisif</th><th class="num">Voix gaspillées</th><th class="num">% gaspillé</th><th class="num">Sièges</th>
+            </tr></thead><tbody></tbody></table></div>
+            <p class="footnote">Les voix des blocs sont additionnées au tour décisif de chaque circonscription. Un bloc regroupe les nuances officielles : RN (RN, divers extrême droite) · NFP (Union de la gauche, divers gauche, écologistes dissidents) · Ensemble (Ensemble, divers centre) · Droite (LR, divers droite).</p>
+        </div>
+    </section>
+
+    <!-- ============ 3. AUTRES MODES DE SCRUTIN ============ -->
+    <section id="tab-scrutins" class="tab-panel">
+        <div class="intro">
+            <h2>Et avec un autre mode de scrutin ?</h2>
+            <p>Le découpage ne compte que parce que le scrutin est uninominal. Ce simulateur recalcule la répartition des 12 sièges à partir des voix du 1er tour du département, selon la règle choisie. La proportionnelle départementale est une règle d'école : elle ne correspond à aucune proposition précise, mais montre l'écart avec le scrutin actuel.</p>
+        </div>
+        <div class="card card-dark">
+            <div class="controls">
+                <div><label class="field" for="modeSelect">Mode de scrutin</label>
+                    <select id="modeSelect">
+                        <option value="reel">Scrutin réel 2024 : uninominal à deux tours</option>
+                        <option value="un_tour">Uninominal à un tour (le candidat en tête du 1er tour l'emporte)</option>
+                        <option value="dhondt">Proportionnelle départementale — plus forte moyenne (D'Hondt)</option>
+                        <option value="sl">Proportionnelle départementale — Sainte-Laguë</option>
+                        <option value="hare">Proportionnelle départementale — quotient de Hare, plus forts restes</option>
+                        <option value="prime">Proportionnelle avec prime majoritaire à la liste en tête</option>
+                    </select></div>
+                <div><label class="field" for="seuilSelect">Seuil (% des exprimés)</label>
+                    <select id="seuilSelect"><option value="0">Aucun</option><option value="3">3 %</option><option value="5" selected>5 %</option><option value="10">10 %</option></select></div>
+                <div><label class="field" for="primeSelect">Prime (si applicable)</label>
+                    <select id="primeSelect"><option value="0.25" selected>25 % des sièges (3)</option><option value="0.5">50 % des sièges (6)</option></select></div>
+                <div><button class="btn btn-primary" id="btnSim">Recalculer</button></div>
+            </div>
+        </div>
+        <div class="grid-2-eq" style="margin-top:24px">
+            <div class="card"><div class="card-header"><h3 class="card-title">Répartition des 12 sièges</h3><p class="card-desc" id="simDesc"></p></div>
+                <div id="simBars"></div></div>
+            <div class="card"><div class="card-header"><h3 class="card-title">Lecture</h3><p class="card-desc">Calculée automatiquement à partir du résultat affiché.</p></div>
+                <div class="prose" id="simText"></div></div>
+        </div>
+        <div class="card" style="margin-top:24px">
+            <div class="card-header"><h3 class="card-title">Détail du calcul</h3><p class="card-desc" id="simTableDesc"></p></div>
+            <div class="table-wrap"><table class="t" id="tableSim"><thead><tr>
+                <th>Liste / bloc</th><th class="num">Voix 1er tour</th><th class="num">% exprimés</th><th class="num">Sièges 2024</th><th class="num">Sièges simulés</th><th class="num">Écart</th>
+            </tr></thead><tbody></tbody></table></div>
+            <div class="table-wrap" id="quotWrap" style="margin-top:20px"></div>
+            <p class="footnote">Les voix du bloc « Autres » (extrême gauche, divers, Reconquête…) forment un ensemble hétérogène et ne sont pas traitées comme une liste : elles comptent dans les exprimés mais ne reçoivent pas de siège dans les modes proportionnels.</p>
+        </div>
+    </section>
+
+    <!-- ============ 4. LABORATOIRE ============ -->
+    <section id="tab-lab" class="tab-panel">
+        <div class="intro">
+            <h2>Laboratoire de redécoupage</h2>
+            <p>Que se passerait-il si les mêmes électeurs étaient répartis autrement ? Le laboratoire repart des <strong>résultats de chacune des communes de Gironde</strong> (1er et 2nd tours) et regroupe ces communes en 12 circonscriptions d'un seul tenant, selon des objectifs différents : égalité de population, formes compactes, séparation de la métropole bordelaise, ou avantage délibéré à un camp. Bordeaux, trop peuplée pour une seule circonscription, est traitée en trois morceaux fidèles au découpage actuel.</p>
+            <p>Vous pouvez afficher jusqu'à quatre cartes côte à côte, <strong>générer votre propre découpage</strong> (objectif, tolérance, compacité) ou <strong>retoucher une carte commune par commune</strong>. Le projet de SERM de l'aire bordelaise relie des territoires répartis sur plusieurs circonscriptions : le tracé de ces dernières détermine comment ces territoires sont représentés au Parlement.</p>
+            <div class="note" style="margin-top:12px"><strong>À lire avant d'interpréter.</strong> Ces cartes sont des exercices de simulation, pas des propositions. Les résultats d'un nouveau découpage reposent sur un modèle de second tour (voir « Méthode » en bas de page) : il reproduit exactement les 12 élus de 2024 mais reste une estimation dès que les finalistes changent. Un découpage « à avantage » existe à titre pédagogique : il illustre ce qu'une majorité pourrait obtenir en dessinant la carte en sa faveur.</div>
+        </div>
+        <div class="lab-layout">
+            <aside>
+                <div class="card" style="padding:16px">
+                    <h3 class="card-title" style="font-size:18px">Choisir des cartes</h3>
+                    <p class="card-desc" style="margin-bottom:10px">Cliquez pour afficher ou retirer (4 maximum).</p>
+                    <div class="quick" style="margin-bottom:14px">
+                        <button class="btn btn-outline sm" data-quick="rn">RN : meilleur résultat</button>
+                        <button class="btn btn-outline sm" data-quick="nfp">NFP : meilleur résultat</button>
+                        <button class="btn btn-outline sm" data-quick="ens">Ensemble : meilleur résultat</button>
+                        <button class="btn btn-outline sm" data-quick="comp">Comparer les trois</button>
+                    </div>
+                    <div id="scenList"></div>
+                </div>
+                <div class="card" style="padding:16px;margin-top:16px">
+                    <h3 class="card-title" style="font-size:18px">Générer un découpage</h3>
+                    <p class="card-desc" style="margin-bottom:12px">Un algorithme déplace des communes frontalières à partir du découpage de 2024, en gardant des circonscriptions d'un seul tenant.</p>
+                    <div style="margin-bottom:10px"><label class="field" for="genObj">Objectif</label>
+                        <select id="genObj" style="width:100%">
+                            <option value="0">Maximiser les sièges du RN</option>
+                            <option value="1">Maximiser les sièges du NFP</option>
+                            <option value="2">Maximiser les sièges d'Ensemble</option>
+                            <option value="eq">Égaliser les populations</option>
+                            <option value="prop">Se rapprocher d'une proportionnelle</option>
+                            <option value="met">Séparer métropole et territoires ruraux</option>
+                        </select></div>
+                    <div class="param-grid" style="grid-template-columns:1fr;gap:10px">
+                        <div><label class="field">Écart de population max <span class="val" id="vTol">±15 %</span></label><input type="range" id="genTol" min="3" max="20" value="15"></div>
+                        <div><label class="field">Compacité des formes <span class="val" id="vCmp">0,2</span></label><input type="range" id="genCmp" min="0" max="10" value="2"></div>
+                        <div><label class="field">Proximité avec le découpage 2024 <span class="val" id="vFid">0</span></label><input type="range" id="genFid" min="0" max="10" value="0"></div>
+                        <div><label class="field">Effort de calcul <span class="val" id="vEff">moyen</span></label><input type="range" id="genEff" min="1" max="5" value="3"></div>
+                    </div>
+                    <button class="btn btn-primary" id="btnGen" style="width:100%;margin-top:14px">Générer la carte</button>
+                    <div class="progress" id="genProg" style="display:none"><span></span></div>
+                    <p class="small muted" id="genMsg" style="margin-top:8px"></p>
+                </div>
+            </aside>
+            <div>
+                <div class="card" style="padding:14px 18px;margin-bottom:16px">
+                    <div class="flex-between flex-wrap gap align-center">
+                        <div class="small muted" id="labSummary"></div>
+                        <div class="flex gap flex-wrap align-center">
+                            <label class="small"><input type="checkbox" id="optBase"> Superposer le découpage 2024</label>
+                            <label class="small"><input type="checkbox" id="optSync" checked> Synchroniser les cartes</label>
+                            <label class="small"><input type="checkbox" id="optOrtho"> Vue aérienne</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="mapsGrid" class="maps-grid n1"></div>
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header"><h3 class="card-title">Comparaison des découpages affichés</h3>
+                        <p class="card-desc">Sièges simulés, égalité de population et ampleur du changement par rapport à 2024.</p></div>
+                    <div class="table-wrap"><table class="t" id="tableCompare"></table></div>
+                </div>
+                <div class="card" style="margin-top:20px" id="atelier">
+                    <div class="card-header flex-between flex-wrap gap">
+                        <div><h3 class="card-title">Atelier : retoucher une carte commune par commune</h3>
+                            <p class="card-desc">Choisissez une carte de départ, puis cliquez sur une commune pour la rattacher à une circonscription voisine.</p></div>
+                        <div class="flex gap flex-wrap align-center">
+                            <select id="edBase"></select>
+                            <button class="btn btn-dark sm" id="edStart">Ouvrir l'atelier</button>
+                        </div>
+                    </div>
+                    <div id="edBody" style="display:none">
+                        <div class="grid-2">
+                            <div><div id="edMap" class="map"></div></div>
+                            <div id="edSide"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ 5. DONNÉES ============ -->
+    <section id="tab-donnees" class="tab-panel">
+        <div class="intro">
+            <h2>Données, méthode et vérification</h2>
+            <p>Tout ce que montre ce site vient de fichiers publics. Cette page permet de parcourir les données par commune, de les exporter, de contrôler en direct les totaux auprès de data.gouv.fr et de lire la méthode utilisée pour les simulations.</p>
+        </div>
+        <div class="card">
+            <div class="card-header flex-between flex-wrap gap">
+                <div><h3 class="card-title">Communes de Gironde</h3><p class="card-desc" id="comCount"></p></div>
+                <div class="flex gap flex-wrap align-center">
+                    <input type="search" id="searchCom" placeholder="Rechercher une commune…">
+                    <select id="filtCirco"><option value="">Toutes les circonscriptions</option></select>
+                    <select id="filtBloc"><option value="">Tous les blocs en tête</option><option value="0">RN en tête</option><option value="1">NFP en tête</option><option value="2">Ensemble en tête</option><option value="3">Droite en tête</option></select>
+                    <button class="btn btn-outline" id="btnCsvCom">Exporter (CSV)</button>
+                </div>
+            </div>
+            <div class="table-wrap"><table class="t" id="tableCom"><thead><tr>
+                <th class="sortable" data-s="nom">Commune</th><th class="sortable" data-s="c">Circo 2024</th><th class="sortable num" data-s="pop">Population</th><th class="sortable num" data-s="ins">Inscrits</th>
+                <th class="sortable num" data-s="rn">% RN</th><th class="sortable num" data-s="nfp">% NFP</th><th class="sortable num" data-s="ens">% Ens.</th><th>En tête (1er tour)</th><th>Finalistes observés au 2nd tour</th>
+            </tr></thead><tbody></tbody></table></div>
+            <div class="flex-between align-center" style="margin-top:12px"><span class="small muted" id="pageInfo"></span>
+                <div class="flex gap"><button class="btn btn-outline sm" id="pgPrev">← Précédent</button><button class="btn btn-outline sm" id="pgNext">Suivant →</button></div></div>
+            <p class="footnote">Pourcentages calculés sur les suffrages exprimés du 1er tour de chaque commune. Les trois morceaux de Bordeaux sont déduits des totaux officiels de leur circonscription (voir méthode).</p>
+        </div>
+        <div class="grid-2-eq" style="margin-top:24px">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Contrôle en direct</h3><p class="card-desc">Interroge l'API tabulaire de data.gouv.fr et compare avec les données embarquées dans ce site.</p></div>
+                <button class="btn btn-primary" id="btnLive">Interroger data.gouv.fr</button>
+                <div id="liveOut" class="small" style="margin-top:14px"></div>
+                <div style="margin-top:14px"><button class="btn btn-outline" id="btnCsvCirco">Exporter les résultats par circonscription (CSV)</button></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Sources</h3></div>
+                <ul class="prose" style="padding-left:18px;font-size:13.5px;line-height:1.7">
+                    <li>Ministère de l'Intérieur — <a href="https://www.data.gouv.fr/fr/datasets/6682d0c255dcda5df20b1d90/" target="_blank" rel="noopener">résultats définitifs du 1er tour</a> (par circonscription et par commune).</li>
+                    <li>Ministère de l'Intérieur — <a href="https://www.data.gouv.fr/fr/datasets/668b4092826ddcf70e9e62cd/" target="_blank" rel="noopener">résultats définitifs du 2nd tour</a>.</li>
+                    <li>Etalab (J. Desboeufs) — <a href="https://www.data.gouv.fr/fr/datasets/contours-geographiques-des-circonscriptions-legislatives/" target="_blank" rel="noopener">contours géographiques des circonscriptions législatives</a>.</li>
+                    <li>geo.api.gouv.fr — communes, populations (INSEE) et Bordeaux Métropole.</li>
+                    <li>Contours communaux — <a href="https://github.com/gregoiredavid/france-geojson" target="_blank" rel="noopener">france-geojson</a> (d'après IGN Admin Express).</li>
+                    <li>Fonds de carte — Géoplateforme de l'IGN, OpenStreetMap.</li>
+                </ul>
+                <p class="small muted" style="margin-top:8px">Licence Ouverte 2.0 pour les données publiques.</p>
+            </div>
+        </div>
+        <div class="card" style="margin-top:24px">
+            <div class="card-header"><h3 class="card-title">Méthode du laboratoire de redécoupage</h3></div>
+            <div class="prose" id="methodText"></div>
+            <div class="table-wrap"><table class="t" id="tableModel"></table></div>
+        </div>
+    </section>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div><h5>À propos</h5><p>Outil pédagogique indépendant. Habillage graphique inspiré du site de la Société des Grands Projets ; ce site n'est affilié ni à cet organisme ni à l'administration.</p></div>
+            <div><h5>Données publiques</h5><ul>
+                <li><a href="https://www.data.gouv.fr/fr/datasets/6682d0c255dcda5df20b1d90/" target="_blank" rel="noopener">Résultats 1er tour — data.gouv.fr</a></li>
+                <li><a href="https://www.data.gouv.fr/fr/datasets/668b4092826ddcf70e9e62cd/" target="_blank" rel="noopener">Résultats 2nd tour — data.gouv.fr</a></li>
+                <li><a href="https://geoservices.ign.fr/" target="_blank" rel="noopener">Géoplateforme — IGN</a></li></ul></div>
+            <div><h5>Navigation</h5><ul><li><a href="#mainNav">Haut de page</a></li></ul></div>
+        </div>
+        <div class="footer-bottom">© Observatoire électoral — code libre de réutilisation. Fonds de carte © IGN · © contributeurs OpenStreetMap.</div>
+    </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+<script src="app.js"></script>
+<script src="lab.js"></script>
+</body>
+</html>
